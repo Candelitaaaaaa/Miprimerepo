@@ -11,7 +11,8 @@ function loadStore() {
     const raw = localStorage.getItem(STORE_KEY);
     if (!raw) return defaultStore();
     const parsed = JSON.parse(raw);
-    return { ...defaultStore(), ...parsed };
+    const base = defaultStore();
+    return { ...base, ...parsed, settings: { ...base.settings, ...(parsed.settings || {}) } };
   } catch (e) {
     return defaultStore();
   }
@@ -19,7 +20,7 @@ function loadStore() {
 
 function defaultStore() {
   return {
-    settings: { startDate: todayISO() },
+    settings: { startDate: todayISO(), apiKey: '', aiModel: 'claude-sonnet-5' },
     foodLogs: {},
     workoutLogs: {},
     habits: {},
@@ -104,6 +105,16 @@ function removeMeasurementEntry(dateISO) {
 
 function setStartDate(dateISO) {
   STORE.settings.startDate = dateISO;
+  persist();
+}
+
+function setApiKey(key) {
+  STORE.settings.apiKey = key.trim();
+  persist();
+}
+
+function setAiModel(model) {
+  STORE.settings.aiModel = model;
   persist();
 }
 

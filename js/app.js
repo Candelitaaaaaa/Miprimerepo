@@ -34,6 +34,7 @@ function render() {
   if (currentTab === 'comidas') root.appendChild(renderComidas());
   if (currentTab === 'progreso') root.appendChild(renderProgreso());
   if (currentTab === 'plan') root.appendChild(renderPlan());
+  if (currentTab === 'ajustes') root.appendChild(renderAjustes());
 }
 
 function card(children, extraClass = '') {
@@ -203,6 +204,11 @@ function renderComidas() {
   ]));
 
   frag.appendChild(card([
+    el('div', { class: 'card-title' }, '📷 Sacar foto a la comida'),
+    photoAnalyzeForm(today)
+  ]));
+
+  frag.appendChild(card([
     el('div', { class: 'card-title' }, 'Agregar alimento rápido'),
     quickAddForm(today)
   ]));
@@ -233,6 +239,97 @@ function renderComidas() {
   ]));
 
   return frag;
+}
+
+let photoState = { status: 'idle', previewUrl: null, result: null, error: null };
+
+function resetPhotoState() {
+  photoState = { status: 'idle', previewUrl: null, result: null, error: null };
+}
+
+function photoAnalyzeForm(dateISO) {
+  const wrap = el('div', {});
+
+  if (!STORE.settings.apiKey) {
+    wrap.appendChild(el('div', { class: 'card-line warn' }, 'Configura tu API key de Anthropic en Ajustes para usar esta función.'));
+    wrap.appendChild(el('button', { class: 'btn secondary', onclick: () => switchTab('ajustes') }, 'Ir a Ajustes'));
+    return wrap;
+  }
+
+  const fileInput = el('input', { type: 'file', accept: 'image/*', capture: 'environment', class: 'input', style: 'padding:6px' });
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    photoState = { status: 'analyzing', previewUrl: URL.createObjectURL(file), result: null, error: null };
+    render();
+    try {
+      const result = await analyzeFoodPhoto(file);
+      photoState = { ...photoState, status: 'done', result };
+    } catch (e) {
+      photoState = { ...photoState, status: 'error', error: e.message };
+    }
+    render();
+  });
+  wrap.appendChild(fileInput);
+  wrap.appendChild(el('div', { class: 'card-line muted small' }, 'La foto se envía directo a la IA de Anthropic para estimar calorías; no se guarda en ningún servidor de esta app.'));
+
+  if (photoState.previewUrl) {
+    wrap.appendChild(el('img', { src: photoState.previewUrl, class: 'photo-preview' }));
+  }
+
+  if (photoState.status === 'analyzing') {
+    wrap.appendChild(el('div', { class: 'card-line' }, '🔎 Analizando la foto...'));
+  }
+
+  if (photoState.status === 'error') {
+    wrap.appendChild(el('div', { class: 'card-line warn' }, '⚠ ' + photoState.error));
+  }
+
+  if (photoState.status === 'done') {
+    wrap.appendChild(photoResultEditor(dateISO));
+  }
+
+  return wrap;
+}
+
+function photoResultEditor(dateISO) {
+  const result = photoState.result;
+  const wrap = el('div', {});
+  if (!result.items.length) {
+    wrap.appendChild(el('div', { class: 'card-line muted' }, result.notes || 'No se detectó comida en la foto.'));
+    wrap.appendChild(el('button', { class: 'btn secondary', onclick: () => { resetPhotoState(); render(); } }, 'Intentar de nuevo'));
+    return wrap;
+  }
+  if (result.notes) wrap.appendChild(el('div', { class: 'card-line muted small' }, result.notes));
+
+  result.items.forEach((item, idx) => {
+    const nameInput = el('input', { type: 'text', class: 'input', value: item.name });
+    const gramsInput = el('input', { type: 'number', class: 'input', value: item.grams, style: 'max-width:80px' });
+    const kcalInput = el('input', { type: 'number', class: 'input', value: Math.round(item.kcal), style: 'max-width:80px' });
+    const protInput = el('input', { type: 'number', class: 'input', value: fmt1(item.prot), style: 'max-width:80px' });
+    nameInput.addEventListener('change', () => { item.name = nameInput.value; });
+    gramsInput.addEventListener('change', () => { item.grams = parseFloat(gramsInput.value) || 0; });
+    kcalInput.addEventListener('change', () => { item.kcal = parseFloat(kcalInput.value) || 0; });
+    protInput.addEventListener('change', () => { item.prot = parseFloat(protInput.value) || 0; });
+    wrap.appendChild(el('div', { class: 'form-row photo-item-row' }, [nameInput, gramsInput, kcalInput, protInput]));
+  });
+
+  wrap.appendChild(el('div', { class: 'card-line muted small' }, 'g · kcal · proteína (g) — puedes editar antes de agregar'));
+
+  wrap.appendChild(el('button', {
+    class: 'btn primary',
+    onclick: () => {
+      result.items.forEach(item => {
+        addFoodEntry(dateISO, { name: item.name, grams: item.grams, kcal: item.kcal, prot: item.prot });
+      });
+      resetPhotoState();
+      render();
+    }
+  }, 'Agregar todo al registro'));
+
+  wrap.appendChild(el('button', { class: 'btn secondary', onclick: () => { resetPhotoState(); render(); } }, 'Descartar'));
+
+  return wrap;
 }
 
 function quickAddForm(dateISO) {
@@ -500,11 +597,6 @@ function renderPlan() {
     ...TRACKING_GUIDE.frecuencia.map(f => el('div', { class: 'card-line' }, f))
   ]));
 
-  frag.appendChild(card([
-    el('div', { class: 'card-title' }, 'Fecha de inicio del plan'),
-    startDateForm()
-  ]));
-
   return frag;
 }
 
@@ -523,6 +615,69 @@ function startDateForm() {
   const input = el('input', { type: 'date', class: 'input', value: STORE.settings.startDate });
   const btn = el('button', { class: 'btn secondary', onclick: () => { setStartDate(input.value); render(); } }, 'Guardar');
   return el('div', { class: 'form-row' }, [input, btn]);
+}
+
+/* ---------- AJUSTES ---------- */
+
+function renderAjustes() {
+  const frag = el('div', {});
+
+  frag.appendChild(card([
+    el('div', { class: 'card-title' }, 'Fecha de inicio del plan'),
+    el('div', { class: 'card-line muted small' }, 'Se usa para saber en qué semana (1 a 8) vas hoy.'),
+    startDateForm()
+  ]));
+
+  frag.appendChild(card([
+    el('div', { class: 'card-title' }, '📷 Análisis de fotos con IA'),
+    el('div', { class: 'card-line muted small' },
+      'Para contar calorías desde una foto necesitas tu propia API key de Anthropic. Se guarda solo en este dispositivo (localStorage) y se usa directo desde el navegador para hablar con la IA — nunca pasa por un servidor de esta app.'),
+    apiKeyForm(),
+    aiModelForm()
+  ]));
+
+  frag.appendChild(card([
+    el('div', { class: 'card-title' }, 'Cómo conseguir la API key'),
+    el('div', { class: 'card-line' }, '1. Entra a console.anthropic.com y crea una cuenta (tiene créditos gratis para empezar).'),
+    el('div', { class: 'card-line' }, '2. Ve a "API Keys" y crea una nueva key.'),
+    el('div', { class: 'card-line' }, '3. Cópiala y pégala arriba. Cada foto analizada tiene un costo muy bajo (fracciones de centavo) que se descuenta de tu cuenta de Anthropic.')
+  ]));
+
+  frag.appendChild(card([
+    el('div', { class: 'card-title' }, 'Instalar la app en tu celular'),
+    el('div', { class: 'card-line' }, 'Android (Chrome): menú ⋮ → "Instalar app" o "Añadir a pantalla de inicio".'),
+    el('div', { class: 'card-line' }, 'iPhone (Safari): botón compartir 📤 → "Añadir a pantalla de inicio".'),
+    el('div', { class: 'card-line muted small' }, 'Debe estar abierta desde el link publicado (https), no desde un archivo local, para poder instalarse.')
+  ]));
+
+  return frag;
+}
+
+function apiKeyForm() {
+  const input = el('input', { type: 'password', class: 'input', placeholder: 'sk-ant-...', value: STORE.settings.apiKey });
+  const toggle = el('button', {
+    class: 'btn-icon',
+    onclick: () => { input.type = input.type === 'password' ? 'text' : 'password'; }
+  }, '👁');
+  const btn = el('button', {
+    class: 'btn primary',
+    onclick: () => { setApiKey(input.value); render(); }
+  }, STORE.settings.apiKey ? 'Actualizar key' : 'Guardar key');
+  return el('div', { class: 'form-row' }, [input, toggle, btn]);
+}
+
+function aiModelForm() {
+  const select = el('select', { class: 'input' });
+  [
+    { id: 'claude-sonnet-5', label: 'Sonnet 5 (más preciso)' },
+    { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5 (más rápido y barato)' }
+  ].forEach(m => {
+    const opt = el('option', { value: m.id }, m.label);
+    if (m.id === STORE.settings.aiModel) opt.setAttribute('selected', 'selected');
+    select.appendChild(opt);
+  });
+  select.addEventListener('change', () => { setAiModel(select.value); });
+  return el('div', { class: 'form-row' }, [select]);
 }
 
 document.addEventListener('DOMContentLoaded', () => {

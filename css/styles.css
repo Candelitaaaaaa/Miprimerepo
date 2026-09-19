@@ -238,8 +238,8 @@ body {
   flex: 1;
   border: none;
   background: none;
-  padding: 10px 4px 8px;
-  font-size: 11px;
+  padding: 8px 2px 7px;
+  font-size: 10px;
   color: var(--muted);
   cursor: pointer;
   display: flex;
@@ -247,5 +247,14 @@ body {
   align-items: center;
   gap: 2px;
 }
-.navbtn .icon { font-size: 18px; }
+.navbtn .icon { font-size: 17px; }
 .navbtn.active { color: var(--pink); }
+
+.photo-preview {
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin: 10px 0;
+}
+.photo-item-row .input { min-width: 60px; }
