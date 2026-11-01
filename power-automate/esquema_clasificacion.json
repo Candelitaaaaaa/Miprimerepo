@@ -1,0 +1,146 @@
+{
+  "type": "object",
+  "properties": {
+    "es_relevante": {
+      "type": "boolean",
+      "description": "true si el correo trata de un proceso de selección propio."
+    },
+    "empresa": {
+      "anyOf": [
+        {
+          "type": "string",
+          "description": "Empresa empleadora tal como aparece (no la plataforma)."
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "cargo": {
+      "anyOf": [
+        {
+          "type": "string",
+          "description": "Cargo o programa tal como aparece en el correo."
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "tipo_comunicacion": {
+      "type": "string",
+      "enum": [
+        "Confirmación de postulación",
+        "Confirmación de recepción",
+        "Revisión curricular",
+        "Avance en el proceso",
+        "Invitación a evaluación",
+        "Evaluación realizada",
+        "Invitación a entrevista",
+        "Entrevista realizada",
+        "Solicitud de documentos",
+        "Exámenes médicos",
+        "Oferta laboral",
+        "Rechazo",
+        "Seguimiento administrativo",
+        "Correo irrelevante"
+      ]
+    },
+    "etapa_proceso": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "Postulación recibida",
+            "En revisión",
+            "En selección – etapa 1",
+            "En selección – etapa 2",
+            "Evaluación online",
+            "Entrevista con reclutamiento",
+            "Entrevista con jefatura",
+            "Evaluación técnica o grupal",
+            "Exámenes médicos",
+            "Etapa final",
+            "Oferta recibida",
+            "Seleccionada",
+            "Rechazada"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "fecha_evento": {
+      "anyOf": [
+        {
+          "type": "string",
+          "description": "YYYY-MM-DD o YYYY-MM-DDTHH:MM de la entrevista, evaluación o plazo mencionado."
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "accion_pendiente": {
+      "type": "boolean"
+    },
+    "descripcion_accion": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "fecha_limite_accion": {
+      "anyOf": [
+        {
+          "type": "string",
+          "description": "YYYY-MM-DD"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "es_postulacion_enviada": {
+      "type": "boolean",
+      "description": "Solo correos ENVIADOS: true si el correo envía una postulación."
+    },
+    "confianza": {
+      "type": "number",
+      "description": "Entre 0 y 1."
+    },
+    "justificacion": {
+      "type": "string"
+    },
+    "evidencia_textual": {
+      "type": "string",
+      "description": "Cita literal y breve del correo que respalda el tipo."
+    },
+    "resumen": {
+      "type": "string",
+      "description": "Una o dos frases en español."
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "es_relevante",
+    "empresa",
+    "cargo",
+    "tipo_comunicacion",
+    "etapa_proceso",
+    "fecha_evento",
+    "accion_pendiente",
+    "descripcion_accion",
+    "fecha_limite_accion",
+    "es_postulacion_enviada",
+    "confianza",
+    "justificacion",
+    "evidencia_textual",
+    "resumen"
+  ]
+}

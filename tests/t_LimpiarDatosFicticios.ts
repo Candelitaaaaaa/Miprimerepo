@@ -1,0 +1,12 @@
+declare const LIBRO_DEMO: string;
+const wb = cargarLibro(LIBRO_DEMO);
+main(wbx(wb));
+const demo = (t: string, c: string) => wb.filas(t).filter((r) => String(r[c]).startsWith("DEMO-") || String(r[c]).startsWith("[DEMO]")).length;
+igual(demo("tblPostulaciones", "ID de postulación"), 0, "sin postulaciones demo");
+igual(wb.filas("tblPostulaciones").length, 15, "quedan los 15 registros iniciales");
+igual(demo("tblComunicaciones", "ID del mensaje"), 0, "sin comunicaciones demo");
+igual(wb.filas("tblComunicaciones").length, 1, "tabla de comunicaciones queda con 1 fila vacía");
+igual(demo("tblPendientes", "ID del mensaje"), 0, "sin pendientes demo");
+igual(demo("tblEmpresas", "Empresa"), 0, "sin empresas demo");
+igual(wb.filas("tblEmpresas").length, 15, "15 empresas reales");
+finPruebas("LimpiarDatosFicticios");

@@ -1,0 +1,12 @@
+declare const LIBRO_DEMO: string;
+const wb = cargarLibro(LIBRO_DEMO);
+const par = wb.tablas.get("tblParametros")!;
+const i = par.d.rows.findIndex((r) => r[0] === "MarcarSinRespuestaAutomatico");
+par.d.rows[i][1] = "Sí";
+const r = main(wbx(wb), "2026-11-02T08:00:00");
+igual(r.marcadosSinRespuesta, 1, "marca 1 proceso sin respuesta");
+const p = wb.fila("tblPostulaciones", "ID de postulación", "DEMO-0004")!;
+igual(p["Estado actual"], "Sin respuesta", "DEMO-0004 → Sin respuesta");
+verificar(String(p["Observaciones"]).indexOf("Marcado «Sin respuesta»") >= 0, "deja constancia en Observaciones");
+igual(wb.celdas.get("Cálculos!G9"), 46328.33333, "registra fecha de ejecución");
+finPruebas("ActualizarDashboard");
